@@ -1,3 +1,5 @@
+#include <Keypad.h>
+#include <Joystick.h>
 
 int A = 2;       //variable A a pin digital 2 (DT en modulo)
 int B = 4;        //variable B a pin digital 4 (CLK en modulo)
