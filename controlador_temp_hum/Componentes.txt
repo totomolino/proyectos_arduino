@@ -1,0 +1,11 @@
+-Display Lcd 16x2 Azul con modulo I2c Arduino
+
+-Dht 22 sensor de humedad y temperatura
+
+-Modulo Relay de 1 canal 5v 10A arduino (3 unidades)
+
+-Encoder rotativo (2 unidades)
+
+-Pulsador Switch Normalmente abierto 4 patas (6 unidades)
+
+-Fuente de alimentacion 7V DC arduino (adentro positivo afuera negativo) para arduino leonardo
