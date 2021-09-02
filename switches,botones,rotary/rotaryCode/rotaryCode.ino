@@ -3,6 +3,7 @@
 
 int A = 2;       //variable A a pin digital 2 (DT en modulo)
 int B = 4;        //variable B a pin digital 4 (CLK en modulo)
+int C = 5; //Boton
 
 int ANTERIOR = 50;    // almacena valor anterior de la variable POSICION
 
@@ -11,6 +12,7 @@ volatile int POSICION = 50; // variable POSICION con valor inicial de 50 y defin
 void setup() {
   pinMode(A, INPUT_PULLUP);    // A como entrada
   pinMode(B, INPUT_PULLUP);    // B como entrada
+  pinMode(C, INPUT_PULLUP);
 
   Serial.begin(9600);   // incializacion de comunicacion serie a 9600 bps
 
@@ -24,6 +26,9 @@ void loop() {
   if (POSICION != ANTERIOR) { // si el valor de POSICION es distinto de ANTERIOR
     Serial.println(POSICION); // imprime valor de POSICION
     ANTERIOR = POSICION ; // asigna a ANTERIOR el valor actualizado de POSICION
+  }
+  if(digitalRead(C) == HIGH){
+    Serial.println("BOTON");
   }
 }
 
