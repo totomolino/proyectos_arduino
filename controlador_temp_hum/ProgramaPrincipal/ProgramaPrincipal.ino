@@ -40,7 +40,7 @@ void setup() {
     Timer1.attachInterrupt(timerIsr);
     pinMode(rele,OUTPUT);
     pinMode(boton, INPUT_PULLUP);
-    //attachInterrupt(digitalPinToInterrupt(boton),configuracion,HIGH);
+    //attachInterrupt(digitalPinToInterrupt(boton),configuracion,FALLING);
     encoder.setAccelerationEnabled(true);
     dht.begin();
 
@@ -49,19 +49,18 @@ void setup() {
     oldEncPos = 0;
     inicializar();
     lcd.clear();
-    showDht();
     //updateMenu();
+
 }
 
 void loop() {
 
-  //menuPpal();
-  
-  showDht();
-
-  
+  if(botonEncoder() == 1){
     
-
+    configuracion();
+    lcd.clear();
+  }
+      
 }
 
 
@@ -78,6 +77,7 @@ void menuPpal(){
     updateMenu();
     while(menuConfig == 1)
     {
+      
       configuracion();
     }
     while (!digitalRead(boton));
@@ -85,9 +85,11 @@ void menuPpal(){
 }
 
 void configuracion(){
-  menu =1;
+  boolean quieroSeguir = true;
+  menu = 1;
   updateMenu();
-  while(1){
+
+  while(quieroSeguir){
     encPos += encoder.getValue();
   
     if (encPos != oldEncPos) {
@@ -97,25 +99,27 @@ void configuracion(){
            delay(100);  //der    
       }
       if((oldEncPos - encPos)<0){
-            menu++;
-            updateMenu();
+          menu++;
+          updateMenu();
           delay(100);//izq
       }
       oldEncPos = encPos;
   
     }
      
-    if (botonEncoder() == 1){
+    if (botonEncoder() == 1){//Seleccionar
       executeAction();
       updateMenu();
       delay(100);
       while (botonEncoder() == 1);
     }
-    if (!digitalRead(boton)){
-      break;
+    if (!digitalRead(boton)){//Salir
+      quieroSeguir = false;
       while(!digitalRead(boton));
     }
   }
+  lcd.clear();
+  lcd.print("Saliendo de config");
 }
 
 void showDht(){
