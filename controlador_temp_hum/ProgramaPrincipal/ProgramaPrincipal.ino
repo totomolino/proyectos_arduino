@@ -160,7 +160,7 @@ void updateMenu() {
       break;
     case 3:
       lcd.clear();
-      lcd.print(">Delta Temp:");
+      lcd.print(">D Temp:");
       lcd.setCursor(12,0);
       imprimirVariable(dT);
       lcd.setCursor(0, 1);
@@ -170,7 +170,7 @@ void updateMenu() {
       break;
     case 4:
       lcd.clear();
-      lcd.print(" Delta Temp:");
+      lcd.print(" D Temp:");
       lcd.setCursor(12,0);
       imprimirVariable(dT);
       lcd.setCursor(0, 1);
@@ -184,7 +184,7 @@ void updateMenu() {
       lcd.setCursor(12,0);
       imprimirVariable(minH);
       lcd.setCursor(0, 1);
-      lcd.print(" Delta hum:");
+      lcd.print(" D hum:");
       lcd.setCursor(12,1);
       imprimirVariable(dH);
       break;
@@ -194,7 +194,7 @@ void updateMenu() {
       lcd.setCursor(12,0);
       imprimirVariable(minH);
       lcd.setCursor(0, 1);
-      lcd.print(">Delta hum:");
+      lcd.print(">D hum:");
       lcd.setCursor(12,1);
       imprimirVariable(dH);
       break;       
@@ -232,37 +232,56 @@ void executeAction() {
 }
 
 void action1() {
-  lcd.clear();
-  lcd.print(" Max Temp:");
-  lcd.setCursor(11,0);
-  lcd.print(">");
-  imprimirVariable(maxT);
-  lcd.setCursor(0, 1);
-  lcd.print(" Min Temp:");
-  lcd.setCursor(12,1);
-  imprimirVariable(minT);
-  while (botonEncoder() == 0){
-    modificarVariable(&maxT, -10, 30);
-    lcd.setCursor(12,0);
+    lcd.clear();
+    lcd.print(" Max Temp:");
+    lcd.setCursor(11,0);
+    lcd.print(">");
     imprimirVariable(maxT);
-    
-  }
+    lcd.setCursor(0, 1);
+    lcd.print(" Min Temp:");
+    lcd.setCursor(12,1);
+    imprimirVariable(minT);
+    modificarYMostrar(&maxT, -10, 30,0);
+
 }
 
 void action2() {
-  lcd.clear();
-  lcd.print(">Executing #2");
-  delay(1500);
+    lcd.clear();
+    lcd.print(" Max Temp:");
+    lcd.setCursor(12,0);
+    imprimirVariable(maxT);
+    lcd.setCursor(0, 1);
+    lcd.print(" Min Temp:");
+    lcd.setCursor(11,1);
+    lcd.print(">");
+    imprimirVariable(minT);
+    modificarYMostrar(&minT,-10,30,1);
+
 }
 void action3() {
-  lcd.clear();
-  lcd.print(">Executing #3");
-  delay(1500);
+    lcd.clear();
+    lcd.print(" D Temp:");
+    lcd.setCursor(11,0);
+    lcd.print(">");
+    imprimirVariable(dT);
+    lcd.setCursor(0, 1);
+    lcd.print(" Max hum:");
+    lcd.setCursor(12,1);
+    imprimirVariable(maxH);
+    modificarYMostrar(&dT,0,15,0);
 }
 void action4() {
   lcd.clear();
   lcd.print(">Executing #4");
   delay(1500);
+}
+
+void modificarYMostrar(int* variable, int min, int max, int nivel){
+    while (botonEncoder() == 0){
+    modificarVariable(variable, min , max);
+    lcd.setCursor(12,nivel);
+    imprimirVariable(*variable);
+  }
 }
 
 void imprimirVariable(int variable){
