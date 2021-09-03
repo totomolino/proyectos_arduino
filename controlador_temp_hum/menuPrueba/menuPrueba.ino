@@ -13,10 +13,8 @@ uint8_t buttonState;
 #define pinSw A0 //switch
 #define STEPS 4
 #define dhtPin 7
-#define boton 6
-int rele1 = 2;
-int rele2 = 3;
-int rele3 = 4;
+#define boton 2
+int rele = 7;
 float TEMP;
 float HUM;
 int menu = 1;
@@ -27,10 +25,7 @@ int maxH = 60; //Max humedad
 int minH = 20; //Min humedad
 int dH = 2; // histeresis humedad(delta H)
 int menuConfig = 0;
-unsigned long previousMillis = 0;
-const long interval = 1000;
-
-
+void (*funcion)(void);
 
 LiquidCrystal_I2C lcd(0x27,16,2);
 
@@ -43,11 +38,9 @@ void setup() {
     lcd.backlight();
     Timer1.initialize(1000);
     Timer1.attachInterrupt(timerIsr);
-    pinMode(rele1,OUTPUT);
-    pinMode(rele2,OUTPUT);
-    pinMode(rele3,OUTPUT);
+    pinMode(rele,OUTPUT);
     pinMode(boton, INPUT_PULLUP);
-    //attachInterrupt(digitalPinToInterrupt(boton),configuracion,FALLING);
+    attachInterrupt(digitalPinToInterrupt(boton),cambiarFuncion,RISING);
     encoder.setAccelerationEnabled(true);
     dht.begin();
 
@@ -57,18 +50,20 @@ void setup() {
     inicializar();
     lcd.clear();
     //updateMenu();
+    funcion = showDht;
 
 }
 
 void loop() {
-  showDht();
-  if(botonEncoder() == 1){
-    lcd.clear();
-    configuracion();
-    lcd.clear();
-  }
-  
+
+  funcion();
       
+}
+
+void cambiarFuncion(){
+  funcion = configuracion;
+  //detachInterrupt(digitalPinToInterrupt(boton));
+  
 }
 
 
@@ -77,12 +72,27 @@ void timerIsr() {
   encoder.service();
 }
 
+void menuPpal(){
+  //updateMenuPpal();
+  if(!digitalRead(boton)){
+    menuConfig = 1;
+    menu = 1;
+    updateMenu();
+    while(menuConfig == 1)
+    {
+      
+      configuracion();
+    }
+    while (!digitalRead(boton));
+  }
+}
 
 void configuracion(){
+  detachInterrupt(digitalPinToInterrupt(boton));
   boolean quieroSeguir = true;
   menu = 1;
   updateMenu();
-
+  
   while(quieroSeguir){
     encPos += encoder.getValue();
   
@@ -110,63 +120,25 @@ void configuracion(){
     if (!digitalRead(boton)){//Salir
       quieroSeguir = false;
       while(!digitalRead(boton));
+      delay(1000);
+      attachInterrupt(digitalPinToInterrupt(boton),cambiarFuncion,RISING);
     }
   }
+
 }
 
 void showDht(){
-
-    unsigned long currentMillis = millis();
-    //if(currentMillis - previousMillis >= interval){ //si paso el intervalo vuelve a medir
-      TEMP = dht.readTemperature();
-      HUM = dht.readHumidity();
-      lcd.setCursor(0,0);
-      lcd.print("Temp: ");
-      lcd.print(TEMP);
-      lcd.setCursor(0,1);
-      lcd.print("Hum: %");
-      lcd.print(HUM);
-      validarDatos(TEMP, HUM);    
-   // }
-}
-
-void validarDatos(float temp, float hum){
-
-  controlarTemperatura(temp);
-  controlarHumedad(hum);
-
-}
-
-void controlarTemperatura(float temp){
-  if(temp > maxT){
-    digitalWrite(rele1,HIGH); 
-  }
-  else if(temp <= maxT){
-    digitalWrite(rele1,LOW);
-  }
-  if(temp < minT){
-    digitalWrite(rele2,HIGH); 
-  }
-  else if(temp >= minT){
-    digitalWrite(rele2,LOW);
-  }
-  
-  
-}
-
-void controlarHumedad(float hum){
-  if(hum > maxH){
-    digitalWrite(rele3, HIGH);
-  }
-  else if(hum<= maxH){
-    digitalWrite(rele3,LOW);
-  }
-  /*if(temp < minH){
-    digitalWrite(rele2,HIGH); 
-  }
-  else if(temp >= minH){
-    digitalWrite(rele2,LOW);
-  }*/
+    
+    TEMP = dht.readTemperature();
+    HUM = dht.readHumidity();
+    lcd.setCursor(0,0);
+    lcd.print("Temp: ");
+    lcd.print(TEMP);
+    lcd.setCursor(0,1);
+    lcd.print("Hum: %");
+    lcd.print(HUM);
+    //delay(500);
+    
 }
 
 void updateMenu() {
@@ -240,7 +212,9 @@ void updateMenu() {
   }
 }
 
-
+void updateValues(){
+  
+}
 
 void executeAction() {
   switch (menu) {
