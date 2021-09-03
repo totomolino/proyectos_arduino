@@ -12,7 +12,7 @@ uint8_t buttonState;
 #define pinB A1 //DW
 #define pinSw A0 //switch
 #define STEPS 4
-#define dhtPin 6
+#define dhtPin 7
 int rele = 7;
 float TEMP;
 float HUM;
@@ -23,7 +23,7 @@ int dT = 2; // histeresis temperatura(delta T)
 int maxH = 60; //Max humedad
 int minH = 20; //Min humedad
 int dH = 2; // histeresis humedad(delta H)
-
+int menuConfig = 0;
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 ClickEncoder encoder(pinA, pinB, pinSw, STEPS);
@@ -43,12 +43,16 @@ void setup() {
     lcd.clear();
     oldEncPos = 0;
     inicializar();
-    updateMenu();
+    lcd.clear();
+    
+    //updateMenu();
 }
 
 void loop() {
 
-  loopMenu();
+      menuPpal();
+
+    
 
 // DHT SENSOR
 /*
@@ -88,6 +92,7 @@ int botonEncoder(){
         break;
 
       case ClickEncoder::Held:          //3
+        return 2;
         break;
 
       case ClickEncoder::Released:      //4
@@ -98,6 +103,7 @@ int botonEncoder(){
         break;
 
       case ClickEncoder::DoubleClicked: //6
+        return 6;
         break;
     }
   }
@@ -107,7 +113,19 @@ void timerIsr() {
   encoder.service();
 }
 
-void loopMenu(){
+void menuPpal(){
+  //updateMenuPpal();
+  if(botonEncoder() == 1){
+    menuConfig =1;
+    updateMenu();
+    while(menuConfig == 1)
+    configuracion();
+  }else updateMenuPpal();
+  
+  
+}
+
+void configuracion(){
   encPos += encoder.getValue();
 
   if (encPos != oldEncPos) {
@@ -131,6 +149,22 @@ void loopMenu(){
     delay(100);
     while (botonEncoder() == 1);
   }
+  if (botonEncoder() == 6){
+    menuConfig = 0;
+  }
+  
+}
+
+void updateMenuPpal(){
+    delay(2000);
+    TEMP = dht.readTemperature();
+    HUM = dht.readHumidity();
+    lcd.setCursor(0,0);
+    lcd.print("Temp: ");
+    lcd.print(TEMP);
+    lcd.setCursor(0,1);
+    lcd.print("Hum: %");
+    lcd.print(HUM);
 }
 
 void updateMenu() {
@@ -223,10 +257,10 @@ void executeAction() {
       action4();
       break;
     case 5:
-      action4();
+      action5();
       break;
     case 6:
-      action4();
+      action6();
       break;            
   }
 }
@@ -234,8 +268,7 @@ void executeAction() {
 void action1() {
     lcd.clear();
     lcd.print(" Max Temp:");
-    lcd.setCursor(11,0);
-    lcd.print(">");
+    imprimirFlechita(0);
     imprimirVariable(maxT);
     lcd.setCursor(0, 1);
     lcd.print(" Min Temp:");
@@ -252,8 +285,7 @@ void action2() {
     imprimirVariable(maxT);
     lcd.setCursor(0, 1);
     lcd.print(" Min Temp:");
-    lcd.setCursor(11,1);
-    lcd.print(">");
+    imprimirFlechita(1);
     imprimirVariable(minT);
     modificarYMostrar(&minT,-10,30,1);
 
@@ -261,8 +293,7 @@ void action2() {
 void action3() {
     lcd.clear();
     lcd.print(" D Temp:");
-    lcd.setCursor(11,0);
-    lcd.print(">");
+    imprimirFlechita(0);
     imprimirVariable(dT);
     lcd.setCursor(0, 1);
     lcd.print(" Max hum:");
@@ -272,16 +303,48 @@ void action3() {
 }
 void action4() {
   lcd.clear();
-  lcd.print(">Executing #4");
-  delay(1500);
+  lcd.print(" D Temp:");
+  lcd.setCursor(12,0);
+  imprimirVariable(dT);
+  lcd.setCursor(0, 1);
+  lcd.print(" Max hum:");
+  imprimirFlechita(1);
+  imprimirVariable(maxH);
+  modificarYMostrar(&maxH,0,100,1);
 }
-
+void action5() {
+  lcd.clear();
+  lcd.print(" Min hum:");
+  imprimirFlechita(0);
+  imprimirVariable(minH);
+  lcd.setCursor(0, 1);
+  lcd.print(" D hum:");
+  lcd.setCursor(12,1);
+  imprimirVariable(dH);
+  modificarYMostrar(&minH,0,100,0);
+}
+void action6() {
+  lcd.clear();
+  lcd.print(" Min hum:");
+  lcd.setCursor(12,0);
+  imprimirVariable(minH);
+  lcd.setCursor(0, 1);
+  lcd.print(" D hum:");
+  imprimirFlechita(1);
+  imprimirVariable(dH);
+  modificarYMostrar(&dH,0,20,1);
+}
 void modificarYMostrar(int* variable, int min, int max, int nivel){
     while (botonEncoder() == 0){
     modificarVariable(variable, min , max);
     lcd.setCursor(12,nivel);
     imprimirVariable(*variable);
   }
+}
+
+void imprimirFlechita(int nivel){
+    lcd.setCursor(11,nivel);
+    lcd.print(">");
 }
 
 void imprimirVariable(int variable){
@@ -295,6 +358,7 @@ void imprimirVariable(int variable){
     else{
       lcd.print(" ");
       lcd.print(variable);
+      lcd.print(" ");
     }
 }
 
