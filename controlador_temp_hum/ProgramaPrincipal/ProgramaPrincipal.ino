@@ -13,6 +13,7 @@ uint8_t buttonState;
 #define pinSw A0 //switch
 #define STEPS 4
 #define dhtPin 7
+#define boton 2
 int rele = 7;
 float TEMP;
 float HUM;
@@ -24,6 +25,8 @@ int maxH = 60; //Max humedad
 int minH = 20; //Min humedad
 int dH = 2; // histeresis humedad(delta H)
 int menuConfig = 0;
+
+
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 ClickEncoder encoder(pinA, pinB, pinSw, STEPS);
@@ -36,6 +39,8 @@ void setup() {
     Timer1.initialize(1000);
     Timer1.attachInterrupt(timerIsr);
     pinMode(rele,OUTPUT);
+    pinMode(boton, INPUT_PULLUP);
+    //attachInterrupt(digitalPinToInterrupt(boton),configuracion,HIGH);
     encoder.setAccelerationEnabled(true);
     dht.begin();
 
@@ -44,70 +49,22 @@ void setup() {
     oldEncPos = 0;
     inicializar();
     lcd.clear();
-    
+    showDht();
     //updateMenu();
 }
 
 void loop() {
 
-      menuPpal();
+  //menuPpal();
+  
+  showDht();
 
+  
     
 
-// DHT SENSOR
-/*
-    delay(2000);
-    TEMP = dht.readTemperature();
-    HUM = dht.readHumidity();
-    lcd.setCursor(0,0);
-    lcd.print("Temp: ");
-    lcd.print(TEMP);
-    lcd.setCursor(0,1);
-    lcd.print("Hum: %");
-    lcd.print(HUM);
-
-    if(TEMP < 23.6){
-      digitalWrite(rele, HIGH);
-    }else
-    digitalWrite(rele, LOW);
-  */
-
 }
 
-int botonEncoder(){
-    buttonState = encoder.getButton();
 
-  if (buttonState != 0) {
-    lcd.clear();
-    lcd.setCursor(0,0);
-    //lcd.print("Button: "); lcd.print(buttonState);
-    switch (buttonState) {
-      case ClickEncoder::Open:          //0
-        break;
-
-      case ClickEncoder::Closed:        //1
-        break;
-
-      case ClickEncoder::Pressed:       //2
-        break;
-
-      case ClickEncoder::Held:          //3
-        return 2;
-        break;
-
-      case ClickEncoder::Released:      //4
-        break;
-
-      case ClickEncoder::Clicked:       //5
-        return 1;  
-        break;
-
-      case ClickEncoder::DoubleClicked: //6
-        return 6;
-        break;
-    }
-  }
-}
 
 void timerIsr() {
   encoder.service();
@@ -115,48 +72,54 @@ void timerIsr() {
 
 void menuPpal(){
   //updateMenuPpal();
-  if(botonEncoder() == 1){
-    menuConfig =1;
+  if(!digitalRead(boton)){
+    menuConfig = 1;
+    menu = 1;
     updateMenu();
     while(menuConfig == 1)
-    configuracion();
-  }else updateMenuPpal();
-  
-  
+    {
+      configuracion();
+    }
+    while (!digitalRead(boton));
+  }
 }
 
 void configuracion(){
-  encPos += encoder.getValue();
-
-  if (encPos != oldEncPos) {
-    if((oldEncPos - encPos)>0){
-         menu--;
-         updateMenu();
-         delay(100);  //der    
-    }
-    if((oldEncPos - encPos)<0){
-          menu++;
-          updateMenu();
-        delay(100);//izq
-    }
-    oldEncPos = encPos;
-
-  }
-   
-  if (botonEncoder() == 1){
-    executeAction();
-    updateMenu();
-    delay(100);
-    while (botonEncoder() == 1);
-  }
-  if (botonEncoder() == 6){
-    menuConfig = 0;
-  }
+  menu =1;
+  updateMenu();
+  while(1){
+    encPos += encoder.getValue();
   
+    if (encPos != oldEncPos) {
+      if((oldEncPos - encPos)>0){
+           menu--;
+           updateMenu();
+           delay(100);  //der    
+      }
+      if((oldEncPos - encPos)<0){
+            menu++;
+            updateMenu();
+          delay(100);//izq
+      }
+      oldEncPos = encPos;
+  
+    }
+     
+    if (botonEncoder() == 1){
+      executeAction();
+      updateMenu();
+      delay(100);
+      while (botonEncoder() == 1);
+    }
+    if (!digitalRead(boton)){
+      break;
+      while(!digitalRead(boton));
+    }
+  }
 }
 
-void updateMenuPpal(){
-    delay(2000);
+void showDht(){
+    
     TEMP = dht.readTemperature();
     HUM = dht.readHumidity();
     lcd.setCursor(0,0);
@@ -165,6 +128,8 @@ void updateMenuPpal(){
     lcd.setCursor(0,1);
     lcd.print("Hum: %");
     lcd.print(HUM);
+    //delay(500);
+    
 }
 
 void updateMenu() {
@@ -403,4 +368,37 @@ void modificarVariable(int* variable, int min , int max){
   }
 
   
+}
+
+int botonEncoder(){
+    buttonState = encoder.getButton();
+
+  if (buttonState != 0) {
+
+    switch (buttonState) {
+      case ClickEncoder::Open:          //0
+        break;
+
+      case ClickEncoder::Closed:        //1
+        break;
+
+      case ClickEncoder::Pressed:       //2
+        break;
+
+      case ClickEncoder::Held:          //3
+        return 2;
+        break;
+
+      case ClickEncoder::Released:      //4
+        break;
+
+      case ClickEncoder::Clicked:       //5
+        return 1;  
+        break;
+
+      case ClickEncoder::DoubleClicked: //6
+        return 6;
+        break;
+    }
+  }
 }
