@@ -227,7 +227,6 @@ void showDht(){
       lcd.print(char(3));
       lcd.print("%");
       lcd.print(HUM,0);
-
       lcd.setCursor(10,0);
       lcd.print("C");
       imprimirEstado2(estadoCooler,10,1);
@@ -254,7 +253,7 @@ void validarDatos(float temp, float hum){
 
 }
 
-void controlarTemperatura(float temp){
+void controlarTemperatura(float temp){ //TODO cuando llega a la maxT, bajar la temperatura hasta maxT - dT
   if(temp > maxT){
     digitalWrite(cooler,HIGH);
     estadoCooler = HIGH; 
