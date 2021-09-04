@@ -3,6 +3,7 @@
 #include <TimerOne.h>
 #include <DHT.h>
 #include <DHT_U.h>
+#include <EEPROM.h>
 
 
 int16_t oldEncPos, encPos;
@@ -94,21 +95,28 @@ void setup() {
     lcd.createChar(2,offCharacter);
     lcd.createChar(3,gota);
     lcd.createChar(4,termometro);
+    
     Timer1.initialize(1000);
     Timer1.attachInterrupt(timerIsr);
+    
     pinMode(cooler,OUTPUT);
     pinMode(heater,OUTPUT);
     pinMode(humidificador,OUTPUT);
     pinMode(boton, INPUT_PULLUP);
+
+    
+    cargarVariables();  
+    
     encoder.setAccelerationEnabled(true);
+    
     dht.begin();
 
-    //delay(1000);
+
     lcd.clear();
     oldEncPos = 0;
     inicializar();
     lcd.clear();
-    //updateMenu();
+    
 
 }
 
@@ -123,6 +131,41 @@ void loop() {
       
 }
 
+void cargarVariables(){
+  int ubi = 0;
+  leer(ubi,maxT);
+  ubi += sizeof(int);
+  leer(ubi,minT);
+  ubi += sizeof(int);
+  leer(ubi,dT);
+  ubi += sizeof(int);
+  leer(ubi,maxH);
+  ubi += sizeof(int);
+  leer(ubi,minH);
+  ubi += sizeof(int);
+  leer(ubi,dH);
+  ubi += sizeof(int);
+
+  
+}
+
+void updateVariables(){
+  int ubi = 0;
+  guardar(ubi,maxT);
+  ubi += sizeof(int);
+  guardar(ubi,minT);
+  ubi += sizeof(int);
+  guardar(ubi,dT);
+  ubi += sizeof(int);
+  guardar(ubi,maxH);
+  ubi += sizeof(int);
+  guardar(ubi,minH);
+  ubi += sizeof(int);
+  guardar(ubi,dH);
+  ubi += sizeof(int);
+
+  
+}
 
 
 void timerIsr() {
@@ -160,6 +203,7 @@ void configuracion(){
       while (botonEncoder() == 1);
     }
     if (!digitalRead(boton)){//Salir
+      updateVariables();
       quieroSeguir = false;
       while(!digitalRead(boton));
     }
@@ -334,9 +378,18 @@ void updateMenu() {
       lcd.clear();
       lcd.print(">Humidif:");
       imprimirEstado(estadoHumidificador,13,0);
-      break;                         
+      lcd.setCursor(0, 1);
+      lcd.print(" Reset");
+      break;
     case 10:
-      menu = 9;
+      lcd.clear();
+      lcd.print(" Humidif:");
+      imprimirEstado(estadoHumidificador,13,0);
+      lcd.setCursor(0, 1);
+      lcd.print(">Reset");
+      break;                                 
+    case 11:
+      menu = 10;
       break;
   }
 }
@@ -372,6 +425,9 @@ void executeAction() {
     case 9:
       action9();
       break;                              
+    case 10:
+      action10();
+      break;        
   }
 }
 
@@ -476,8 +532,72 @@ void action9() {
   lcd.print(" Humidif:");
   imprimirFlechita(0);
   imprimirEstado(estadoHumidificador,13,0);
+  lcd.setCursor(0, 1);
+  lcd.print(" Reset");
   modificarYMostrarEstado(&estadoHumidificador,0);
 
+}
+
+
+
+void action10(){
+  lcd.clear();
+  lcd.print(" Esta seguro?");
+  lcd.setCursor(3,1);
+  lcd.print("Si");
+  lcd.setCursor(12,1);
+  lcd.print("No");
+  imprimirFlechita2(11,1);
+  elegirOpcion();
+}
+
+void elegirOpcion(){
+  int seleccion = false;
+  while (botonEncoder() == 0){
+      modificarFlechita(&seleccion);
+  }
+  if(seleccion == true){
+    resetear();
+  }
+}
+
+void resetear(){
+  lcd.clear();
+  lcd.print("Reseteando...");
+  
+  maxT = 25;//Max temperatura
+  minT = 10; // Min temperatura
+  dT = 2; // histeresis temperatura(delta T)
+  maxH = 70; //Max humedad
+  minH = 20; //Min humedad
+  dH = 2; // histeresis humedad(delta H)
+
+  updateVariables();
+  delay(500);
+}
+
+void modificarFlechita(int* estado){
+  encPos += encoder.getValue();
+
+  if (encPos != oldEncPos) {
+    if((oldEncPos - encPos)<0 ){
+      imprimirFlechita2(11,1);  //der
+      borrar(2,1);
+      *estado = false;    
+    }
+    if((oldEncPos - encPos)>0){
+      imprimirFlechita2(2,1); //izq
+      borrar(11,1);
+      *estado = true;
+    }
+    oldEncPos = encPos;
+
+  } 
+}
+
+void borrar(int pos, int nivel){
+  lcd.setCursor(pos,nivel);
+  lcd.print(" ");
 }
 
 void modificarEstado(int* estado){
@@ -512,7 +632,10 @@ void modificarYMostrar(int* variable, int min, int max, int nivel){
 }
 
 void imprimirFlechita(int nivel){
-    lcd.setCursor(11,nivel);
+    imprimirFlechita2(11,nivel);
+}
+void imprimirFlechita2(int pos, int nivel){
+    lcd.setCursor(pos,nivel);
     lcd.print(">");
 }
 
@@ -629,4 +752,22 @@ int botonEncoder(){
         break;
     }
   }
+}
+
+template <class T> int guardar(int ee, const T& value)
+{
+    const byte* p = (const byte*)(const void*)&value;
+    unsigned int i;
+    for (i = 0; i < sizeof(value); i++)
+          EEPROM.write(ee++, *p++);
+    return i;
+}
+
+template <class T> int leer(int ee, T& value)
+{
+    byte* p = (byte*)(void*)&value;
+    unsigned int i;
+    for (i = 0; i < sizeof(value); i++)
+          *p++ = EEPROM.read(ee++);
+    return i;
 }
