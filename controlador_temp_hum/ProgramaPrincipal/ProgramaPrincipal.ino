@@ -14,22 +14,26 @@ uint8_t buttonState;
 #define STEPS 4
 #define dhtPin 7
 #define boton 6
-int rele1 = 2;
-int rele2 = 3;
-int rele3 = 4;
+int cooler = 8;
+int heater = 9;
+int humidificador = 10;
+
+int estadoCooler = LOW;
+int estadoHeater = LOW;
+int estadoHumidificador = LOW;
+
 float TEMP;
 float HUM;
 int menu = 1;
 int maxT = 25;//Max temperatura
 int minT = 10; // Min temperatura
 int dT = 2; // histeresis temperatura(delta T)
-int maxH = 60; //Max humedad
+int maxH = 70; //Max humedad
 int minH = 20; //Min humedad
 int dH = 2; // histeresis humedad(delta H)
 int menuConfig = 0;
 unsigned long previousMillis = 0;
 const long interval = 1000;
-
 
 
 LiquidCrystal_I2C lcd(0x27,16,2);
@@ -38,16 +42,64 @@ ClickEncoder encoder(pinA, pinB, pinSw, STEPS);
 
 DHT dht(dhtPin,DHT22);
 
+byte onCharacter[] = {
+  B00000,
+  B00100,
+  B01110,
+  B10101,
+  B10001,
+  B10001,
+  B01110,
+  B00000
+};
+
+byte offCharacter[] = {
+  B00000,
+  B00000,
+  B01110,
+  B10001,
+  B10001,
+  B10001,
+  B01110,
+  B00000
+};
+
+byte gota[] = {
+  B00100,
+  B01010,
+  B01010,
+  B10001,
+  B11111,
+  B11111,
+  B01110,
+  B00000
+};
+
+byte termometro[] = {
+  B00100,
+  B01010,
+  B01010,
+  B01110,
+  B01110,
+  B11111,
+  B11111,
+  B01110
+};
+
+
 void setup() {
     lcd.init();
     lcd.backlight();
+    lcd.createChar(1,onCharacter);
+    lcd.createChar(2,offCharacter);
+    lcd.createChar(3,gota);
+    lcd.createChar(4,termometro);
     Timer1.initialize(1000);
     Timer1.attachInterrupt(timerIsr);
-    pinMode(rele1,OUTPUT);
-    pinMode(rele2,OUTPUT);
-    pinMode(rele3,OUTPUT);
+    pinMode(cooler,OUTPUT);
+    pinMode(heater,OUTPUT);
+    pinMode(humidificador,OUTPUT);
     pinMode(boton, INPUT_PULLUP);
-    //attachInterrupt(digitalPinToInterrupt(boton),configuracion,FALLING);
     encoder.setAccelerationEnabled(true);
     dht.begin();
 
@@ -117,17 +169,38 @@ void configuracion(){
 void showDht(){
 
     unsigned long currentMillis = millis();
-    //if(currentMillis - previousMillis >= interval){ //si paso el intervalo vuelve a medir
+    if(currentMillis - previousMillis >= interval){ //si paso el intervalo vuelve a medir
       TEMP = dht.readTemperature();
       HUM = dht.readHumidity();
       lcd.setCursor(0,0);
-      lcd.print("Temp: ");
-      lcd.print(TEMP);
+      lcd.print(char(4));
+      imprimirVariable((int)TEMP);
+      lcd.setCursor(6,0);
+      lcd.print("Ht:");
+      imprimirEstado2(estadoHeater,7,1);
+      imprimirBarra(9);
       lcd.setCursor(0,1);
-      lcd.print("Hum: %");
-      lcd.print(HUM);
+      lcd.print(char(3));
+      lcd.print("%");
+      lcd.print(HUM,0);
+
+      lcd.setCursor(10,0);
+      lcd.print("C:");
+      imprimirEstado2(estadoCooler,10,1);
+      imprimirBarra(12);
+      lcd.setCursor(13,0);
+      lcd.print("Hum");
+      imprimirEstado2(estadoHumidificador,14,1);
+      
       validarDatos(TEMP, HUM);    
-   // }
+    }
+}
+
+void imprimirBarra(int pos){
+      lcd.setCursor(pos,0);
+      lcd.print("|");
+      lcd.setCursor(pos,1);
+      lcd.print("|");
 }
 
 void validarDatos(float temp, float hum){
@@ -139,16 +212,16 @@ void validarDatos(float temp, float hum){
 
 void controlarTemperatura(float temp){
   if(temp > maxT){
-    digitalWrite(rele1,HIGH); 
+    digitalWrite(cooler,HIGH); 
   }
   else if(temp <= maxT){
-    digitalWrite(rele1,LOW);
+    digitalWrite(cooler,LOW);
   }
   if(temp < minT){
-    digitalWrite(rele2,HIGH); 
+    digitalWrite(heater,HIGH); 
   }
   else if(temp >= minT){
-    digitalWrite(rele2,LOW);
+    digitalWrite(heater,LOW);
   }
   
   
@@ -156,16 +229,16 @@ void controlarTemperatura(float temp){
 
 void controlarHumedad(float hum){
   if(hum > maxH){
-    digitalWrite(rele3, HIGH);
+    digitalWrite(humidificador, HIGH);
   }
   else if(hum<= maxH){
-    digitalWrite(rele3,LOW);
+    digitalWrite(humidificador,LOW);
   }
   /*if(temp < minH){
-    digitalWrite(rele2,HIGH); 
+    digitalWrite(heater,HIGH); 
   }
   else if(temp >= minH){
-    digitalWrite(rele2,LOW);
+    digitalWrite(heater,LOW);
   }*/
 }
 
@@ -233,9 +306,31 @@ void updateMenu() {
       lcd.print(">D hum:");
       lcd.setCursor(12,1);
       imprimirVariable(dH);
-      break;       
+      break;
     case 7:
-      menu = 6;
+      lcd.clear();
+      lcd.print(">Cooler:");
+      imprimirEstado(estadoCooler,13,0);
+      lcd.setCursor(0, 1);
+      lcd.print(" Heater:");
+      imprimirEstado(estadoHeater,13,1);
+      break;
+    case 8:
+      lcd.clear();
+      lcd.print(" Cooler:");
+      imprimirEstado(estadoCooler,13,0);
+      lcd.setCursor(0, 1);
+      lcd.print(">Heater:");
+      lcd.setCursor(12,1);
+      imprimirEstado(estadoHeater,13, 1);
+      break;
+    case 9:
+      lcd.clear();
+      lcd.print(">Humidif:");
+      imprimirEstado(estadoHumidificador,13,0);
+      break;                         
+    case 10:
+      menu = 9;
       break;
   }
 }
@@ -261,11 +356,21 @@ void executeAction() {
       break;
     case 6:
       action6();
-      break;            
+      break;
+    case 7:
+      action7();
+      break;
+    case 8:
+      action8();
+      break;
+    case 9:
+      action9();
+      break;                              
   }
 }
 
 void action1() {
+    
     lcd.clear();
     lcd.print(" Max Temp:");
     imprimirFlechita(0);
@@ -334,6 +439,64 @@ void action6() {
   imprimirVariable(dH);
   modificarYMostrar(&dH,0,20,1);
 }
+
+void action7() {
+  lcd.clear();
+  lcd.print(" Cooler:");
+  imprimirFlechita(0);
+  imprimirEstado(estadoCooler,13,0);
+  lcd.setCursor(0, 1);
+  lcd.print(" Heater:");
+  imprimirEstado(estadoHeater,13,1);
+  modificarYMostrarEstado(&estadoCooler,0);
+
+}
+
+void action8() {
+  lcd.clear();
+  lcd.print(" Cooler:");
+  imprimirEstado(estadoCooler,13,0);
+  lcd.setCursor(0, 1);
+  lcd.print(" Heater:");
+  imprimirFlechita(1);
+  lcd.setCursor(12,1);
+  imprimirEstado(estadoHeater,13, 1);
+  modificarYMostrarEstado(&estadoHeater,1);
+
+}
+
+void action9() {
+  lcd.clear();
+  lcd.print(" Humidif:");
+  imprimirFlechita(0);
+  imprimirEstado(estadoHumidificador,13,0);
+  modificarYMostrarEstado(&estadoHumidificador,0);
+
+}
+
+void modificarEstado(int* estado){
+  encPos += encoder.getValue();
+
+  if (encPos != oldEncPos) {
+    if((oldEncPos - encPos)<0 && *estado == LOW){
+      *estado = HIGH;  //der    
+    }
+    if((oldEncPos - encPos)>0 && *estado == HIGH){
+      *estado = LOW; //izq
+    }
+    oldEncPos = encPos;
+
+  } 
+}
+
+void modificarYMostrarEstado(int* variable, int nivel){
+    while (botonEncoder() == 0){
+      modificarEstado(variable);
+      imprimirEstado(*variable,13, nivel);
+  }
+}
+
+
 void modificarYMostrar(int* variable, int min, int max, int nivel){
     while (botonEncoder() == 0){
     modificarVariable(variable, min , max);
@@ -361,6 +524,30 @@ void imprimirVariable(int variable){
       lcd.print(" ");
     }
 }
+
+void imprimirEstado(int estado,int pos, int nivel){
+  lcd.setCursor(pos,nivel);
+  if(estado == LOW){
+    lcd.print("OFF");
+  }
+  else if(estado == HIGH){
+    lcd.print("ON");
+    lcd.print(" ");
+  }
+  
+}
+
+void imprimirEstado2(int estado,int pos, int nivel){
+  lcd.setCursor(pos,nivel);
+  if(estado == LOW){
+    lcd.print(char(2));
+  }
+  else if(estado == HIGH){
+    lcd.print(char(1));
+  }
+  
+}
+
 
 int dirEncoder(){//devuelve 1 si gira para la derecha, y -1 si para la izq
   encPos += encoder.getValue();
