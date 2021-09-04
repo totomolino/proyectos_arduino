@@ -175,17 +175,17 @@ void showDht(){
       lcd.setCursor(0,0);
       lcd.print(char(4));
       imprimirVariable((int)TEMP);
-      lcd.setCursor(6,0);
-      lcd.print("Ht:");
-      imprimirEstado2(estadoHeater,7,1);
-      imprimirBarra(9);
+      lcd.setCursor(5,0);
+      lcd.print("Ht");
+      imprimirEstado2(estadoHeater,6,1);
+      imprimirBarra(8);
       lcd.setCursor(0,1);
       lcd.print(char(3));
       lcd.print("%");
       lcd.print(HUM,0);
 
       lcd.setCursor(10,0);
-      lcd.print("C:");
+      lcd.print("C");
       imprimirEstado2(estadoCooler,10,1);
       imprimirBarra(12);
       lcd.setCursor(13,0);
@@ -212,16 +212,20 @@ void validarDatos(float temp, float hum){
 
 void controlarTemperatura(float temp){
   if(temp > maxT){
-    digitalWrite(cooler,HIGH); 
+    digitalWrite(cooler,HIGH);
+    estadoCooler = HIGH; 
   }
   else if(temp <= maxT){
     digitalWrite(cooler,LOW);
+    estadoCooler = LOW;
   }
   if(temp < minT){
-    digitalWrite(heater,HIGH); 
+    digitalWrite(heater,HIGH);
+    estadoHeater = HIGH; 
   }
   else if(temp >= minT){
     digitalWrite(heater,LOW);
+    estadoHeater = LOW;
   }
   
   
@@ -230,9 +234,11 @@ void controlarTemperatura(float temp){
 void controlarHumedad(float hum){
   if(hum > maxH){
     digitalWrite(humidificador, HIGH);
+    estadoHumidificador = HIGH;
   }
   else if(hum<= maxH){
     digitalWrite(humidificador,LOW);
+    estadoHumidificador = LOW;
   }
   /*if(temp < minH){
     digitalWrite(heater,HIGH); 
