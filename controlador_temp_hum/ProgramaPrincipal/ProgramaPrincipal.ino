@@ -258,13 +258,13 @@ void controlarTemperatura(float temp){ //TODO cuando llega a la tIdeal, bajar la
 }
 
 void controlarHumedad(float hum){
-  if(hum >= hIdeal + dH){//Si la temp es mayor que la ideal mas la histeresis, prendo el cooler
+  if((int)hum >= hIdeal + dH){//Si la temp es mayor que la ideal mas la histeresis, prendo el cooler
     encenderHumidificador();
   }
-  else if(hum <= hIdeal - dH){
+  else if((int)hum <= hIdeal - dH){
     //nose
   }
-  else if(hum == hIdeal){//Si llegue a la temperatura indicada, apago todo
+  else if((int)hum == hIdeal){//Si llegue a la temperatura indicada, apago todo
     apagarHumidificador();
   }
   
