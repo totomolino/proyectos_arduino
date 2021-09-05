@@ -258,7 +258,7 @@ void controlarTemperatura(float temp){ //TODO cuando llega a la maxT, bajar la t
     digitalWrite(cooler,HIGH);
     estadoCooler = HIGH; 
   }
-  else if(temp <= maxT){
+  else if(temp <= maxT - dT){//Se apaga el cooler cuando se enfrio la diferencia para abajo
     digitalWrite(cooler,LOW);
     estadoCooler = LOW;
   }
@@ -266,7 +266,7 @@ void controlarTemperatura(float temp){ //TODO cuando llega a la maxT, bajar la t
     digitalWrite(heater,HIGH);
     estadoHeater = HIGH; 
   }
-  else if(temp >= minT){
+  else if(temp >= minT + dT){
     digitalWrite(heater,LOW);
     estadoHeater = LOW;
   }
@@ -279,7 +279,7 @@ void controlarHumedad(float hum){
     digitalWrite(humidificador, HIGH);
     estadoHumidificador = HIGH;
   }
-  else if(hum<= maxH){
+  else if(hum<= maxH - dH){
     digitalWrite(humidificador,LOW);
     estadoHumidificador = LOW;
   }
