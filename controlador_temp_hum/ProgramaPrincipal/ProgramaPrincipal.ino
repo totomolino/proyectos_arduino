@@ -26,11 +26,9 @@ int estadoHumidificador = LOW;
 float TEMP;
 float HUM;
 int menu = 1;
-int maxT = 25;//Max temperatura
-int minT = 10; // Min temperatura
+int tIdeal = 25;//Max temperatura
 int dT = 2; // histeresis temperatura(delta T)
-int maxH = 70; //Max humedad
-int minH = 20; //Min humedad
+int hIdeal = 70; //Max humedad
 int dH = 2; // histeresis humedad(delta H)
 int menuConfig = 0;
 unsigned long previousMillis = 0;
@@ -104,7 +102,6 @@ void setup() {
     pinMode(humidificador,OUTPUT);
     pinMode(boton, INPUT_PULLUP);
 
-    
     cargarVariables();  
     
     encoder.setAccelerationEnabled(true);
@@ -133,15 +130,11 @@ void loop() {
 
 void cargarVariables(){
   int ubi = 0;
-  leer(ubi,maxT);
-  ubi += sizeof(int);
-  leer(ubi,minT);
+  leer(ubi,tIdeal);
   ubi += sizeof(int);
   leer(ubi,dT);
   ubi += sizeof(int);
-  leer(ubi,maxH);
-  ubi += sizeof(int);
-  leer(ubi,minH);
+  leer(ubi,hIdeal);
   ubi += sizeof(int);
   leer(ubi,dH);
   ubi += sizeof(int);
@@ -151,15 +144,11 @@ void cargarVariables(){
 
 void updateVariables(){
   int ubi = 0;
-  guardar(ubi,maxT);
-  ubi += sizeof(int);
-  guardar(ubi,minT);
+  guardar(ubi,tIdeal);
   ubi += sizeof(int);
   guardar(ubi,dT);
   ubi += sizeof(int);
-  guardar(ubi,maxH);
-  ubi += sizeof(int);
-  guardar(ubi,minH);
+  guardar(ubi,hIdeal);
   ubi += sizeof(int);
   guardar(ubi,dH);
   ubi += sizeof(int);
@@ -253,42 +242,58 @@ void validarDatos(float temp, float hum){
 
 }
 
-void controlarTemperatura(float temp){ //TODO cuando llega a la maxT, bajar la temperatura hasta maxT - dT
-  if(temp > maxT){
-    digitalWrite(cooler,HIGH);
-    estadoCooler = HIGH; 
+void controlarTemperatura(float temp){ //TODO cuando llega a la tIdeal, bajar la temperatura hasta tIdeal - dT
+  if(temp >= tIdeal + dT){//Si la temp es mayor que la ideal mas la histeresis, prendo el cooler
+    encenderCooler();
   }
-  else if(temp <= maxT - dT){//Se apaga el cooler cuando se enfrio la diferencia para abajo
-    digitalWrite(cooler,LOW);
-    estadoCooler = LOW;
+  else if(temp <= tIdeal - dT){
+    encenderHeater();
   }
-  if(temp < minT){
-    digitalWrite(heater,HIGH);
-    estadoHeater = HIGH; 
-  }
-  else if(temp >= minT + dT){
-    digitalWrite(heater,LOW);
-    estadoHeater = LOW;
+  else if(temp == tIdeal){//Si llegue a la temperatura indicada, apago todo
+    apagarHeater();
+    apagarCooler();
   }
   
   
 }
 
 void controlarHumedad(float hum){
-  if(hum > maxH){
-    digitalWrite(humidificador, HIGH);
-    estadoHumidificador = HIGH;
+  if(hum >= hIdeal + dH){//Si la temp es mayor que la ideal mas la histeresis, prendo el cooler
+    encenderHumidificador();
   }
-  else if(hum<= maxH - dH){
-    digitalWrite(humidificador,LOW);
-    estadoHumidificador = LOW;
+  else if(hum <= hIdeal - dH){
+    //nose
   }
-  /*if(temp < minH){
-    digitalWrite(heater,HIGH); 
+  else if(hum == hIdeal){//Si llegue a la temperatura indicada, apago todo
+    apagarHumidificador();
   }
-  else if(temp >= minH){
-    digitalWrite(heater,LOW);
-  }*/
+  
+  
+}
+
+void encenderCooler(){
+  digitalWrite(cooler,HIGH);
+  estadoCooler = HIGH;
+}
+void encenderHeater(){
+  digitalWrite(heater,HIGH);
+  estadoHeater = HIGH;  
+}
+void encenderHumidificador(){
+  digitalWrite(humidificador, HIGH);
+  estadoHumidificador = HIGH;  
+}
+void apagarCooler(){
+  digitalWrite(cooler,LOW);
+  estadoCooler = LOW;  
+}
+void apagarHeater(){
+  digitalWrite(heater,LOW);
+  estadoHeater = LOW;  
+}
+void apagarHumidificador(){
+  digitalWrite(humidificador,LOW);
+  estadoHumidificador = LOW;  
 }
 
 void updateMenu() {
@@ -298,23 +303,23 @@ void updateMenu() {
       break;
     case 1:
       lcd.clear();
-      lcd.print(">Max Temp:");
+      lcd.print(">T ideal:");
       lcd.setCursor(12,0);
-      imprimirVariable(maxT);
+      imprimirVariable(tIdeal);
       lcd.setCursor(0, 1);
-      lcd.print(" Min Temp:");
+      lcd.print(" H ideal:");
       lcd.setCursor(12,1);
-      imprimirVariable(minT);
+      imprimirVariable(hIdeal);
       break;
     case 2:
       lcd.clear();
-      lcd.print(" Max Temp:");
+      lcd.print(" T ideal:");
       lcd.setCursor(12,0);
-      imprimirVariable(maxT);
+      imprimirVariable(tIdeal);
       lcd.setCursor(0, 1);
-      lcd.print(">Min Temp:");
+      lcd.print(">H ideal:");
       lcd.setCursor(12,1);
-      imprimirVariable(minT);
+      imprimirVariable(hIdeal);
       break;
     case 3:
       lcd.clear();
@@ -322,9 +327,9 @@ void updateMenu() {
       lcd.setCursor(12,0);
       imprimirVariable(dT);
       lcd.setCursor(0, 1);
-      lcd.print(" Max hum:");
+      lcd.print(" D hum:");
       lcd.setCursor(12,1);
-      imprimirVariable(maxH);
+      imprimirVariable(dH);
       break;
     case 4:
       lcd.clear();
@@ -332,31 +337,11 @@ void updateMenu() {
       lcd.setCursor(12,0);
       imprimirVariable(dT);
       lcd.setCursor(0, 1);
-      lcd.print(">Max hum:");
-      lcd.setCursor(12,1);
-      imprimirVariable(maxH);
-      break;
-     case 5:
-      lcd.clear();
-      lcd.print(">Min hum:");
-      lcd.setCursor(12,0);
-      imprimirVariable(minH);
-      lcd.setCursor(0, 1);
-      lcd.print(" D hum:");
-      lcd.setCursor(12,1);
-      imprimirVariable(dH);
-      break;
-    case 6:
-      lcd.clear();
-      lcd.print(" Min hum:");
-      lcd.setCursor(12,0);
-      imprimirVariable(minH);
-      lcd.setCursor(0, 1);
       lcd.print(">D hum:");
       lcd.setCursor(12,1);
       imprimirVariable(dH);
       break;
-    case 7:
+    case 5:
       lcd.clear();
       lcd.print(">Cooler:");
       imprimirEstado(estadoCooler,13,0);
@@ -364,7 +349,7 @@ void updateMenu() {
       lcd.print(" Heater:");
       imprimirEstado(estadoHeater,13,1);
       break;
-    case 8:
+    case 6:
       lcd.clear();
       lcd.print(" Cooler:");
       imprimirEstado(estadoCooler,13,0);
@@ -373,22 +358,22 @@ void updateMenu() {
       lcd.setCursor(12,1);
       imprimirEstado(estadoHeater,13, 1);
       break;
-    case 9:
+    case 7:
       lcd.clear();
       lcd.print(">Humidif:");
       imprimirEstado(estadoHumidificador,13,0);
       lcd.setCursor(0, 1);
       lcd.print(" Reset");
       break;
-    case 10:
+    case 8:
       lcd.clear();
       lcd.print(" Humidif:");
       imprimirEstado(estadoHumidificador,13,0);
       lcd.setCursor(0, 1);
       lcd.print(">Reset");
       break;                                 
-    case 11:
-      menu = 10;
+    case 9:
+      menu = 8;
       break;
   }
 }
@@ -417,15 +402,9 @@ void executeAction() {
       break;
     case 7:
       action7();
-      break;
+      break;                              
     case 8:
       action8();
-      break;
-    case 9:
-      action9();
-      break;                              
-    case 10:
-      action10();
       break;        
   }
 }
@@ -433,27 +412,27 @@ void executeAction() {
 void action1() {
     
     lcd.clear();
-    lcd.print(" Max Temp:");
+    lcd.print(" T ideal:");
     imprimirFlechita(0);
-    imprimirVariable(maxT);
+    imprimirVariable(tIdeal);
     lcd.setCursor(0, 1);
-    lcd.print(" Min Temp:");
+    lcd.print(" H ideal:");
     lcd.setCursor(12,1);
-    imprimirVariable(minT);
-    modificarYMostrar(&maxT, -10, 30,0);
+    imprimirVariable(hIdeal);
+    modificarYMostrar(&tIdeal, -10, 30,0);
 
 }
 
 void action2() {
     lcd.clear();
-    lcd.print(" Max Temp:");
+    lcd.print(" T ideal:");
     lcd.setCursor(12,0);
-    imprimirVariable(maxT);
+    imprimirVariable(tIdeal);
     lcd.setCursor(0, 1);
-    lcd.print(" Min Temp:");
+    lcd.print(" H ideal:");
     imprimirFlechita(1);
-    imprimirVariable(minT);
-    modificarYMostrar(&minT,-10,30,1);
+    imprimirVariable(hIdeal);
+    modificarYMostrar(&hIdeal,-10,30,1);
 
 }
 void action3() {
@@ -462,9 +441,9 @@ void action3() {
     imprimirFlechita(0);
     imprimirVariable(dT);
     lcd.setCursor(0, 1);
-    lcd.print(" Max hum:");
+    lcd.print(" D hum:");
     lcd.setCursor(12,1);
-    imprimirVariable(maxH);
+    imprimirVariable(dH);
     modificarYMostrar(&dT,0,15,0);
 }
 void action4() {
@@ -473,35 +452,13 @@ void action4() {
   lcd.setCursor(12,0);
   imprimirVariable(dT);
   lcd.setCursor(0, 1);
-  lcd.print(" Max hum:");
-  imprimirFlechita(1);
-  imprimirVariable(maxH);
-  modificarYMostrar(&maxH,0,100,1);
-}
-void action5() {
-  lcd.clear();
-  lcd.print(" Min hum:");
-  imprimirFlechita(0);
-  imprimirVariable(minH);
-  lcd.setCursor(0, 1);
-  lcd.print(" D hum:");
-  lcd.setCursor(12,1);
-  imprimirVariable(dH);
-  modificarYMostrar(&minH,0,100,0);
-}
-void action6() {
-  lcd.clear();
-  lcd.print(" Min hum:");
-  lcd.setCursor(12,0);
-  imprimirVariable(minH);
-  lcd.setCursor(0, 1);
   lcd.print(" D hum:");
   imprimirFlechita(1);
   imprimirVariable(dH);
-  modificarYMostrar(&dH,0,20,1);
+  modificarYMostrar(&dH,0,100,1);
 }
 
-void action7() {
+void action5() {
   lcd.clear();
   lcd.print(" Cooler:");
   imprimirFlechita(0);
@@ -513,7 +470,7 @@ void action7() {
 
 }
 
-void action8() {
+void action6() {
   lcd.clear();
   lcd.print(" Cooler:");
   imprimirEstado(estadoCooler,13,0);
@@ -526,7 +483,7 @@ void action8() {
 
 }
 
-void action9() {
+void action7() {
   lcd.clear();
   lcd.print(" Humidif:");
   imprimirFlechita(0);
@@ -539,7 +496,7 @@ void action9() {
 
 
 
-void action10(){
+void action8(){
   lcd.clear();
   lcd.print(" Esta seguro?");
   lcd.setCursor(3,1);
@@ -564,11 +521,9 @@ void resetear(){
   lcd.clear();
   lcd.print("Reseteando...");
   
-  maxT = 25;//Max temperatura
-  minT = 10; // Min temperatura
+  tIdeal = 25;//Max temperatura
   dT = 2; // histeresis temperatura(delta T)
-  maxH = 70; //Max humedad
-  minH = 20; //Min humedad
+  hIdeal = 70; //Max humedad
   dH = 2; // histeresis humedad(delta H)
 
   updateVariables();
