@@ -258,11 +258,11 @@ void controlarTemperatura(float temp){ //TODO cuando llega a la tIdeal, bajar la
 }
 
 void controlarHumedad(float hum){
-  if((int)hum >= hIdeal + dH){//Si la temp es mayor que la ideal mas la histeresis, prendo el cooler
-    encenderHumidificador();
+  if((int)hum >= hIdeal + dH){//Si la humedad es mayor o igual a la ideal mas la histerisis, prendo el heater
+    encenderHeater();
   }
-  else if((int)hum <= hIdeal - dH){
-    //nose
+  else if((int)hum <= hIdeal - dH){//Si la humedad es menor o igual a la ideal menos la histerisis, prendo el humidificador
+    encenderHumidificador();
   }
   else if((int)hum == hIdeal){//Si llegue a la temperatura indicada, apago todo
     apagarHumidificador();
@@ -432,7 +432,7 @@ void action2() {
     lcd.print(" H ideal:");
     imprimirFlechita(1);
     imprimirVariable(hIdeal);
-    modificarYMostrar(&hIdeal,-10,30,1);
+    modificarYMostrar(&hIdeal,0,100,1);
 
 }
 void action3() {
@@ -444,7 +444,7 @@ void action3() {
     lcd.print(" D hum:");
     lcd.setCursor(12,1);
     imprimirVariable(dH);
-    modificarYMostrar(&dT,0,15,0);
+    modificarYMostrar(&dT,0,100,0);
 }
 void action4() {
   lcd.clear();
