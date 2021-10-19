@@ -255,8 +255,6 @@ void controlarTemperatura(float temp){
     encenderHeater();
   }
 
-  
-  
 }
 
 void controlarHumedad(float hum){
